@@ -1,74 +1,76 @@
-#include <iostream>
-#include <vector>
-#include <algorithm>
-#include <chrono>
+
+#include <bits/stdc++.h>
 
 using namespace std;
 using namespace std::chrono;
 
-long long operations = 0;
-int maxDepth = 0;
+std::vector<int> complexRec(int n)
+{
+    vector<int> data = {0, 1};
+    if (n <= 2)
+    {
 
-void complexRec(int n, int depth) {
-    maxDepth = max(maxDepth, depth);
-    if (n <= 2) {
-        return;
+        return data;
     }
 
+    // 1
     int p = n;
-    while (p > 0) {
-        operations++;
+
+    // OVERALL - nlogn times
+    // log n times
+    while (p > 0)
+    {
         vector<int> temp(n);
-        operations += n; 
-        for (int i = 0; i < n; i++) {
+        // n times
+        for (int i = 0; i < n; i++)
+        {
             temp[i] = i ^ p;
-            operations++;
+            data[0] += 1;
         }
         p >>= 1;
+        data[0] += 1;
     }
 
     vector<int> small(n);
-    operations += n;
-
-    for (int i = 0; i < n; i++) {
+    // n times
+    for (int i = 0; i < n; i++)
+    {
         small[i] = i * i;
-        operations++;
-    }
-if (n % 3 == 0) {
-       reverse(small.begin(), small.end());
-       operations+=n;
-    } 
-    else {
-       reverse(small.begin(), small.end());
-       operations+=n;
+        data[0] += 1;
     }
 
-    complexRec(n / 2, depth + 1);
-    complexRec(n / 2, depth + 1);
-    complexRec(n / 2, depth + 1);
+    // n operataions
+    if (n % 3 == 0)
+    {
+        reverse(small.begin(), small.end());
+        data[0] += n;
+    }
+    else
+    {
+        reverse(small.begin(), small.end());
+        data[0] += n;
+    }
+
+    vector<int> data1 = complexRec(n / 2);
+    vector<int> data2 = complexRec(n / 2);
+    vector<int> data3 = complexRec(n / 2);
+
+    data[0] += data1[0];
+    data[0] += data2[0];
+    data[0] += data3[0];
+    data[1] += data1[1];
+
+    return data;
 }
 
-int main() {
-    int n;
-    cout << "Enter value of n: ";
-    cin >> n;
-
-    operations = 0;
-    maxDepth = 0;
-
+int main()
+{
     auto start = high_resolution_clock::now();
-    complexRec(n, 1);
+    vector<int> data = complexRec(16);
     auto end = high_resolution_clock::now();
-
     auto duration = duration_cast<milliseconds>(end - start);
 
-    cout << "\nResults for n = " << n << endl;
-    cout << "Total Operations: " << operations << endl;
-    cout << "Maximum Recursion Depth: " << maxDepth << endl;
-    cout << "Execution Time: " << duration.count() << " ms" << endl;
-
-    // relation =3t(n/2)+nlogn+2n+2;
-    // complexity=n^log(3,2)   n to power log 3 base 2
-    
-    return 0;
+    cout << "No. of operations in this code is: " << data[0] << endl;
+    cout << "Depth is : " << data[1] << endl;
+    cout << "Time to run all operations: " << duration.count();
 }
