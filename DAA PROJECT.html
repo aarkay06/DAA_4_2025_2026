@@ -1,0 +1,587 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Koko Eating Bananas - Visualizer</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg-color: #f8fafc;
+        --card-bg: #ffffff;
+        --text-main: #0f172a;
+        --text-muted: #64748b;
+        --primary: #f59e0b; /* Banana Yellow */
+        --primary-hover: #d97706;
+        --low-color: #3b82f6; /* Blue */
+        --high-color: #ef4444; /* Red */
+        --mid-color: #10b981; /* Green */
+        --eliminated: #e2e8f0;
+        --border: #cbd5e1;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: "Inter", sans-serif;
+      }
+
+      body {
+        background-color: var(--bg-color);
+        color: var(--text-main);
+        padding: 2rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      h1 {
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      p.subtitle {
+        color: var(--text-muted);
+        margin-bottom: 2rem;
+        max-width: 600px;
+        text-align: center;
+      }
+
+      .controls {
+        background: var(--card-bg);
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        align-items: flex-end;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .input-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      .input-group label {
+        font-weight: 600;
+        font-size: 0.9rem;
+      }
+      .input-group input {
+        padding: 0.75rem;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 1rem;
+        width: 200px;
+        outline: none;
+      }
+      .input-group input:focus {
+        border-color: var(--primary);
+      }
+
+      button {
+        background: var(--primary);
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        transition:
+          background 0.2s,
+          transform 0.1s;
+      }
+      button:hover {
+        background: var(--primary-hover);
+      }
+      button:active {
+        transform: scale(0.98);
+      }
+      button:disabled {
+        background: var(--text-muted);
+        cursor: not-allowed;
+      }
+
+      /* Visualization Areas */
+      .visualization-container {
+        width: 100%;
+        max-width: 1000px;
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+      }
+
+      .panel {
+        background: var(--card-bg);
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      }
+
+      .panel h2 {
+        font-size: 1.2rem;
+        margin-bottom: 1rem;
+        color: var(--text-muted);
+      }
+
+      /* Banana Piles */
+      .piles-wrapper {
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        gap: 1.5rem;
+        height: 180px;
+        padding-bottom: 1rem;
+        border-bottom: 2px dashed var(--border);
+      }
+
+      .pile {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-end;
+        width: 60px;
+        transition: all 0.3s ease;
+      }
+
+      .banana-stack {
+        background-color: var(--primary);
+        width: 100%;
+        border-radius: 6px 6px 0 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        transition: height 0.3s ease;
+        position: relative;
+        background-image: linear-gradient(
+          45deg,
+          rgba(255, 255, 255, 0.1) 25%,
+          transparent 25%,
+          transparent 50%,
+          rgba(255, 255, 255, 0.1) 50%,
+          rgba(255, 255, 255, 0.1) 75%,
+          transparent 75%,
+          transparent
+        );
+        background-size: 20px 20px;
+      }
+
+      .pile-label {
+        margin-top: 0.5rem;
+        font-weight: 600;
+        color: var(--text-muted);
+      }
+
+      /* Search Space Array */
+      .search-space {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: center;
+      }
+
+      .speed-node {
+        width: 45px;
+        height: 45px;
+        border-radius: 8px;
+        border: 2px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1.1rem;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+      }
+
+      /* Status Classes for Animation */
+      .speed-node.eliminated {
+        background-color: var(--eliminated);
+        color: var(--text-muted);
+        border-color: transparent;
+        transform: scale(0.9);
+        opacity: 0.5;
+      }
+
+      .speed-node.low {
+        border-color: var(--low-color);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+      }
+      .speed-node.high {
+        border-color: var(--high-color);
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+      }
+      .speed-node.mid {
+        background-color: var(--mid-color);
+        color: white;
+        border-color: var(--mid-color);
+        transform: scale(1.1);
+        z-index: 10;
+        box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.4);
+      }
+      .speed-node.ans {
+        background-color: var(--primary);
+        color: white;
+        border-color: var(--primary);
+      }
+
+      /* Pointers Label */
+      .speed-node::after {
+        content: attr(data-label);
+        position: absolute;
+        top: -22px;
+        font-size: 0.7rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+      .speed-node.low::after {
+        color: var(--low-color);
+      }
+      .speed-node.high::after {
+        color: var(--high-color);
+      }
+      .speed-node.mid::after {
+        color: white;
+        top: auto;
+        bottom: -22px;
+        color: var(--mid-color);
+      }
+
+      /* Logs Panel */
+      .logs {
+        background: #1e293b;
+        color: #f8fafc;
+        padding: 1.5rem;
+        border-radius: 12px;
+        font-family: monospace;
+        height: 200px;
+        overflow-y: auto;
+        line-height: 1.6;
+      }
+      .log-line {
+        margin-bottom: 0.5rem;
+        animation: slideIn 0.3s ease forwards;
+        opacity: 0;
+        transform: translateX(-10px);
+      }
+      .log-success {
+        color: #4ade80;
+      }
+      .log-fail {
+        color: #f87171;
+      }
+      .log-calc {
+        color: #93c5fd;
+      }
+      .log-ans {
+        color: #fcd34d;
+        font-weight: bold;
+      }
+
+      @keyframes slideIn {
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      .legend {
+        display: flex;
+        justify-content: center;
+        gap: 1.5rem;
+        margin-top: 1rem;
+        font-size: 0.9rem;
+      }
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .legend-color {
+        width: 16px;
+        height: 16px;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🐒 Koko Eating Bananas</h1>
+    <p class="subtitle">
+      Binary Search Visualizer: Find the minimum eating speed (k) so Koko can
+      eat all bananas within H hours before the guards return.
+    </p>
+
+    <div class="controls">
+      <div class="input-group">
+        <label for="pilesInput">Banana Piles (comma separated)</label>
+        <input type="text" id="pilesInput" value="3, 6, 7, 11" />
+      </div>
+      <div class="input-group">
+        <label for="hoursInput">Hours Available (H)</label>
+        <input type="number" id="hoursInput" value="8" min="1" />
+      </div>
+      <button id="startBtn">Start Search 🍌</button>
+    </div>
+
+    <div class="visualization-container">
+      <div class="panel">
+        <h2>Current Piles</h2>
+        <div class="piles-wrapper" id="pilesContainer"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Search Space (Possible Speeds 'k')</h2>
+        <div class="search-space" id="searchSpaceContainer"></div>
+
+        <div class="legend">
+          <div class="legend-item">
+            <div
+              class="legend-color"
+              style="background: var(--low-color)"
+            ></div>
+            Low
+          </div>
+          <div class="legend-item">
+            <div
+              class="legend-color"
+              style="background: var(--mid-color)"
+            ></div>
+            Mid (Checking)
+          </div>
+          <div class="legend-item">
+            <div
+              class="legend-color"
+              style="background: var(--high-color)"
+            ></div>
+            High
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background: var(--primary)"></div>
+            Final Answer
+          </div>
+        </div>
+      </div>
+
+      <div class="logs" id="logsContainer">
+        <div class="log-line">
+          System ready. Enter array and hours, then click Start.
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Sleep utility for animations
+      const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+      // UI Elements
+      const pilesInput = document.getElementById("pilesInput");
+      const hoursInput = document.getElementById("hoursInput");
+      const startBtn = document.getElementById("startBtn");
+      const pilesContainer = document.getElementById("pilesContainer");
+      const searchSpaceContainer = document.getElementById(
+        "searchSpaceContainer",
+      );
+      const logsContainer = document.getElementById("logsContainer");
+
+      let isRunning = false;
+
+      function log(message, type = "") {
+        const div = document.createElement("div");
+        div.className = `log-line ${type}`;
+        div.innerHTML = message;
+        logsContainer.appendChild(div);
+        logsContainer.scrollTop = logsContainer.scrollHeight;
+      }
+
+      function clearLogs() {
+        logsContainer.innerHTML = "";
+      }
+
+      function drawPiles(piles) {
+        pilesContainer.innerHTML = "";
+        const maxPile = Math.max(...piles);
+
+        piles.forEach((p) => {
+          const heightPercent = (p / maxPile) * 150; // max height 150px
+          const pileDiv = document.createElement("div");
+          pileDiv.className = "pile";
+          pileDiv.innerHTML = `
+                    <div class="banana-stack" style="height: ${heightPercent}px">${p}</div>
+                    <div class="pile-label">Pile</div>
+                `;
+          pilesContainer.appendChild(pileDiv);
+        });
+      }
+
+      function drawSearchSpace(maxSpeed) {
+        searchSpaceContainer.innerHTML = "";
+        for (let i = 1; i <= maxSpeed; i++) {
+          const node = document.createElement("div");
+          node.className = "speed-node";
+          node.id = `speed-${i}`;
+          node.innerText = i;
+          searchSpaceContainer.appendChild(node);
+        }
+      }
+
+      function updatePointers(low, high, mid) {
+        document.querySelectorAll(".speed-node").forEach((node) => {
+          node.classList.remove("low", "high", "mid");
+          node.removeAttribute("data-label");
+        });
+
+        if (
+          low <=
+          parseInt(document.querySelector(".speed-node:last-child").innerText)
+        ) {
+          const lowNode = document.getElementById(`speed-${low}`);
+          if (lowNode) {
+            lowNode.classList.add("low");
+            lowNode.setAttribute("data-label", "L");
+          }
+        }
+        if (high >= 1) {
+          const highNode = document.getElementById(`speed-${high}`);
+          if (highNode) {
+            highNode.classList.add("high");
+            highNode.setAttribute("data-label", "H");
+          }
+        }
+        if (mid) {
+          const midNode = document.getElementById(`speed-${mid}`);
+          if (midNode) {
+            midNode.classList.add("mid");
+            midNode.setAttribute("data-label", "MID");
+          }
+        }
+      }
+
+      function eliminateSpace(start, end) {
+        for (let i = start; i <= end; i++) {
+          const node = document.getElementById(`speed-${i}`);
+          if (node) node.classList.add("eliminated");
+        }
+      }
+
+      async function startVisualization() {
+        if (isRunning) return;
+
+        // Parse inputs
+        const piles = pilesInput.value
+          .split(",")
+          .map((n) => parseInt(n.trim()))
+          .filter((n) => !isNaN(n) && n > 0);
+        const h = parseInt(hoursInput.value);
+
+        if (piles.length === 0 || isNaN(h) || h < piles.length) {
+          alert(
+            "Invalid input. Hours (H) must be greater than or equal to the number of piles.",
+          );
+          return;
+        }
+
+        isRunning = true;
+        startBtn.disabled = true;
+        clearLogs();
+        drawPiles(piles);
+
+        const maxSpeed = Math.max(...piles);
+        drawSearchSpace(maxSpeed);
+
+        log(
+          `Initialization: Minimum speed is 1, Maximum speed is max(piles) = ${maxSpeed}`,
+        );
+        log(`Target Hours (H) = ${h}`);
+
+        let low = 1;
+        let high = maxSpeed;
+        let ans = maxSpeed;
+
+        await sleep(1000);
+
+        while (low <= high) {
+          let mid = Math.floor((low + high) / 2);
+          updatePointers(low, high, mid);
+          log(`\n--- New Step ---`);
+          log(`Testing Mid Speed (k) = ${mid}`);
+
+          await sleep(1500);
+
+          // Calculate time needed
+          let timeNeeded = 0;
+          let calcString = [];
+          for (let p of piles) {
+            let hoursForPile = Math.ceil(p / mid);
+            timeNeeded += hoursForPile;
+            calcString.push(`Math.ceil(${p}/${mid})`);
+          }
+
+          log(`Calculation: ${calcString.join(" + ")}`, "log-calc");
+          log(
+            `Total Time Needed at k=${mid} is ${timeNeeded} hours.`,
+            "log-calc",
+          );
+
+          await sleep(2000);
+
+          if (timeNeeded <= h) {
+            log(
+              `${timeNeeded} hours <= ${h} target hours. 🐒 Koko CAN finish!`,
+              "log-success",
+            );
+            ans = mid;
+            log(
+              `Updating Answer to ${ans}. Trying to find a slower speed (High = Mid - 1).`,
+            );
+            eliminateSpace(mid + 1, maxSpeed); // Eliminate right side visually
+            high = mid - 1;
+          } else {
+            log(
+              `${timeNeeded} hours > ${h} target hours. 🐒 Koko CANNOT finish!`,
+              "log-fail",
+            );
+            log(`Speed is too slow. Must eat faster (Low = Mid + 1).`);
+            eliminateSpace(1, mid); // Eliminate left side visually
+            low = mid + 1;
+          }
+          await sleep(1500);
+        }
+
+        updatePointers(-1, -1, null); // Clear pointers
+
+        // Highlight final answer
+        document
+          .querySelectorAll(".speed-node")
+          .forEach((n) => n.classList.add("eliminated"));
+        const finalNode = document.getElementById(`speed-${ans}`);
+        finalNode.classList.remove("eliminated");
+        finalNode.classList.add("ans");
+
+        log(
+          `\n🎉 Search Complete! The minimum eating speed is ${ans} bananas/hour.`,
+          "log-ans",
+        );
+
+        isRunning = false;
+        startBtn.disabled = false;
+      }
+
+      startBtn.addEventListener("click", startVisualization);
+
+      // Initial setup
+      drawPiles([3, 6, 7, 11]);
+      drawSearchSpace(11);
+    </script>
+  </body>
+</html>
